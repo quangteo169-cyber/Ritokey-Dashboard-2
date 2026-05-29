@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Ritokey · HQS10000 Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #f0f4fb;
+  --bg1:      #ffffff;
+  --bg2:      #f8faff;
+  --bg3:      #eef2fa;
+  --border:   #dde4f0;
+  --border2:  #c8d5ea;
+  --green:    #059669;
+  --green-l:  #d1fae5;
+  --blue:     #2563eb;
+  --blue-l:   #dbeafe;
+  --yellow:   #d97706;
+  --yellow-l: #fef3c7;
+  --red:      #dc2626;
+  --red-l:    #fee2e2;
+  --purple:   #7c3aed;
+  --purple-l: #ede9fe;
+  --text:     #1e2d4d;
+  --muted:    #64748b;
+  --muted2:   #94a3b8;
+  --font:     'Inter', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+  --shadow:   0 1px 6px rgba(30,45,77,.07);
+  --shadow-md:0 4px 16px rgba(30,45,77,.10);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px}
+body{padding:20px 24px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg3)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+/* ── Layout ── */
+.wrap{max-width:1320px;margin:0 auto}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+
+/* ── Cards ── */
+.card{
+  background:var(--bg1);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:18px 20px;
+  box-shadow:var(--shadow);
+}
+
+/* ── Header ── */
+header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-bottom:18px;margin-bottom:18px;
+  border-bottom:1px solid var(--border);
+}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-dot{
+  width:38px;height:38px;border-radius:11px;
+  background:linear-gradient(135deg,var(--green),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:14px;color:#fff;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(37,99,235,.25);
+}
+.logo-title{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.4px}
+.logo-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+.header-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.badge{
+  padding:5px 14px;border-radius:20px;font-size:11px;
+  font-family:var(--mono);border:1px solid;font-weight:600;
+}
+.badge-green{background:var(--green-l);border-color:var(--green)33;color:var(--green)}
+.badge-blue{background:var(--blue-l);border-color:var(--blue)33;color:var(--blue)}
+#btn-refresh{
+  padding:5px 14px;border-radius:20px;font-size:11px;
+  font-family:var(--mono);border:1.5px solid var(--border2);
+  background:var(--bg1);color:var(--blue);cursor:pointer;
+  transition:all .15s;box-shadow:var(--shadow);
+}
+#btn-refresh:hover{border-color:var(--blue);background:var(--blue-l)}
+#btn-refresh:disabled{color:var(--muted2);cursor:wait;border-color:var(--border)}
+
+/* ── Filters ── */
+.filters{
+  background:var(--bg1);border:1px solid var(--border);
+  border-radius:14px;padding:16px 18px;margin-bottom:18px;
+  display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;
+  box-shadow:var(--shadow);
+}
+.filter-group{display:flex;flex-direction:column;gap:7px}
+.filter-label{
+  font-size:10px;color:var(--muted2);text-transform:uppercase;
+  letter-spacing:.9px;font-weight:700;
+}
+.tags{display:flex;gap:5px;flex-wrap:wrap}
+.tag{
+  padding:4px 11px;border-radius:20px;font-size:11px;
+  font-family:var(--mono);cursor:pointer;border:1.5px solid var(--border);
+  background:var(--bg3);color:var(--muted);transition:all .15s;
+  user-select:none;white-space:nowrap;
+}
+.tag:hover{border-color:var(--border2);color:var(--text)}
+.tag.active-green {background:var(--green-l); border-color:var(--green); color:var(--green);  font-weight:600}
+.tag.active-blue  {background:var(--blue-l);  border-color:var(--blue);  color:var(--blue);   font-weight:600}
+.tag.active-red   {background:var(--red-l);   border-color:var(--red);   color:var(--red);    font-weight:600}
+.tag.active-purple{background:var(--purple-l);border-color:var(--purple);color:var(--purple); font-weight:600}
+.tag.active-yellow{background:var(--yellow-l);border-color:var(--yellow);color:var(--yellow); font-weight:600}
+
+/* SKU dropdown */
+.sku-wrap{position:relative}
+#sku-btn{
+  padding:4px 12px;border-radius:20px;font-size:11px;
+  font-family:var(--mono);cursor:pointer;
+  border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);
+  display:flex;align-items:center;gap:6px;font-weight:600;
+}
+#sku-panel{
+  position:absolute;top:calc(100% + 6px);left:0;z-index:300;
+  background:var(--bg1);border:1px solid var(--border);
+  border-radius:12px;padding:12px;min-width:300px;display:none;
+  box-shadow:var(--shadow-md);
+}
+#sku-panel.open{display:block}
+.sku-ctrl{display:flex;gap:12px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.sku-ctrl span{font-size:10px;font-family:var(--mono);cursor:pointer;text-decoration:underline}
+.sku-ctrl .all{color:var(--blue)}
+.sku-ctrl .none{color:var(--red)}
+.sku-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;max-height:200px;overflow-y:auto}
+.sku-item{
+  display:flex;align-items:center;gap:6px;padding:5px 6px;
+  border-radius:6px;cursor:pointer;font-size:10px;
+  font-family:var(--mono);color:var(--muted);transition:all .1s;
+}
+.sku-item input{accent-color:var(--blue);width:12px;height:12px;flex-shrink:0}
+.sku-item.checked{color:var(--blue);background:var(--blue-l)}
+
+/* ── KPI ── */
+.kpi{
+  background:var(--bg1);border:1px solid var(--border);
+  border-radius:14px;padding:16px 18px;
+  position:relative;overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.kpi::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0;
+}
+.kpi.k-green::before{background:var(--green)}
+.kpi.k-blue::before{background:var(--blue)}
+.kpi.k-yellow::before{background:var(--yellow)}
+.kpi.k-red::before{background:var(--red)}
+.kpi-glow{
+  position:absolute;right:-16px;top:-16px;
+  width:90px;height:90px;border-radius:50%;pointer-events:none;
+}
+.k-green .kpi-glow{background:var(--green-l)}
+.k-blue  .kpi-glow{background:var(--blue-l)}
+.k-yellow .kpi-glow{background:var(--yellow-l)}
+.k-red   .kpi-glow{background:var(--red-l)}
+.kpi-label{font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.9px;font-weight:700;margin-bottom:10px}
+.kpi-val{font-size:28px;font-weight:700;font-family:var(--mono);line-height:1}
+.k-green  .kpi-val{color:var(--green)}
+.k-blue   .kpi-val{color:var(--blue)}
+.k-yellow .kpi-val{color:var(--yellow)}
+.k-red    .kpi-val{color:var(--red)}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:6px;font-family:var(--mono)}
+
+/* ── Section title ── */
+.sec-title{
+  font-size:11px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.9px;
+  margin-bottom:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.sec-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sec-right{margin-left:auto;font-size:10px;color:var(--muted2);font-family:var(--mono);font-weight:400;text-transform:none}
+
+/* ── Chart containers ── */
+.chart-wrap{position:relative;height:210px}
+
+/* ── SKU bars ── */
+.sku-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.sku-name{
+  font-size:10px;font-family:var(--mono);color:var(--muted);
+  width:140px;flex-shrink:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.sku-bar-bg{flex:1;height:20px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.sku-bar{
+  height:100%;border-radius:4px;display:flex;
+  align-items:center;padding-left:7px;min-width:36px;transition:width .4s ease;
+}
+.sku-bar span{font-size:9px;font-family:var(--mono);white-space:nowrap;font-weight:600}
+.sku-count{font-size:10px;font-family:var(--mono);width:30px;text-align:right;flex-shrink:0;font-weight:600}
+
+/* ── BU rows ── */
+.bu-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 10px;background:var(--bg2);border-radius:8px;
+  border:1px solid var(--border);margin-bottom:5px;
+}
+.bu-left{display:flex;align-items:center;gap:7px}
+.bu-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.bu-name{font-size:11px;font-family:var(--mono);color:var(--text);font-weight:600}
+.bu-nums{display:flex;gap:20px}
+.bu-rev{font-size:11px;font-family:var(--mono);color:var(--green);font-weight:600}
+.bu-ord{font-size:11px;font-family:var(--mono);color:var(--blue);font-weight:600}
+
+/* ── Loading / Error ── */
+#loading,#error-screen{
+  min-height:60vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;
+}
+.spinner{
+  width:36px;height:36px;border:3px solid var(--border);
+  border-top-color:var(--green);border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.error-icon{font-size:32px}
+.error-msg{font-size:13px;color:var(--red);font-family:var(--mono)}
+.error-hint{font-size:11px;color:var(--muted);max-width:380px;text-align:center;line-height:1.6}
+.btn-retry{
+  margin-top:4px;padding:8px 20px;border-radius:20px;font-size:12px;
+  font-family:var(--mono);cursor:pointer;border:1.5px solid var(--green);
+  background:var(--green-l);color:var(--green);
+}
+
+/* ── Error banner ── */
+#error-banner{
+  background:var(--red-l);border:1px solid var(--red)33;border-radius:10px;
+  padding:9px 14px;margin-bottom:14px;font-size:11px;
+  color:var(--red);font-family:var(--mono);
+  display:none;justify-content:space-between;align-items:center;gap:8px;
+}
+#error-banner.show{display:flex}
+
+/* ── Footer ── */
+footer{
+  margin-top:22px;padding-top:14px;border-top:1px solid var(--border);
+  font-size:10px;color:var(--muted2);font-family:var(--mono);
+  display:flex;justify-content:space-between;
+}
+
+/* ── Date Range Picker ── */
+.dr-wrap{position:relative}
+#dr-btn{
+  display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:10px;cursor:pointer;
+  border:1.5px solid var(--border2);background:var(--bg1);color:var(--text);
+  font-family:var(--font);font-size:13px;transition:all .15s;white-space:nowrap;
+  box-shadow:var(--shadow);
+}
+#dr-btn:hover{border-color:var(--blue);background:var(--blue-l)}
+#dr-btn .dr-icon{color:var(--blue);font-size:15px}
+#dr-btn .dr-range{font-family:var(--mono);font-size:11px;color:var(--green);font-weight:600}
+#dr-btn .dr-arrow{color:var(--muted2);font-size:10px}
+#dr-panel{
+  position:absolute;top:calc(100% + 8px);left:0;z-index:500;
+  background:var(--bg1);border:1px solid var(--border);border-radius:14px;
+  padding:16px;min-width:580px;box-shadow:var(--shadow-md);display:none;
+}
+#dr-panel.open{display:block}
+.dr-presets{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--border)}
+.dr-preset{
+  padding:4px 12px;border-radius:20px;font-size:11px;font-family:var(--mono);
+  cursor:pointer;border:1.5px solid var(--border);background:var(--bg3);color:var(--muted);transition:all .15s;
+}
+.dr-preset:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+.dr-preset.active{background:var(--blue-l);border-color:var(--blue);color:var(--blue);font-weight:600}
+.dr-calendars{display:flex;gap:20px}
+.dr-cal{flex:1}
+.dr-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.dr-cal-nav{
+  background:var(--bg3);border:1.5px solid var(--border);border-radius:7px;
+  color:var(--muted);cursor:pointer;width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s;
+}
+.dr-cal-nav:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+.dr-cal-title{font-size:12px;font-weight:600;color:var(--text);font-family:var(--mono)}
+.dr-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
+.dr-wd{font-size:10px;color:var(--muted2);text-align:center;padding:4px 0;font-family:var(--mono)}
+.dr-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.dr-day{
+  height:30px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-family:var(--mono);border-radius:6px;cursor:pointer;
+  transition:all .1s;color:var(--text);border:1px solid transparent;position:relative;
+}
+.dr-day:hover:not(.empty):not(.disabled){background:var(--bg3);border-color:var(--border)}
+.dr-day.empty,.dr-day.disabled{cursor:default;color:var(--muted2)}
+.dr-day.in-range{background:var(--blue-l);border-radius:0;border-color:transparent}
+.dr-day.range-start{background:var(--blue)!important;color:#fff!important;font-weight:700;border-radius:6px 0 0 6px!important}
+.dr-day.range-end{background:var(--blue)!important;color:#fff!important;font-weight:700;border-radius:0 6px 6px 0!important}
+.dr-day.range-start.range-end{border-radius:6px!important}
+.dr-day.today{border-color:var(--blue)88;color:var(--blue);font-weight:600}
+.dr-day.has-data::after{content:'';width:3px;height:3px;background:var(--green);border-radius:50%;position:absolute;bottom:3px;left:50%;transform:translateX(-50%)}
+.dr-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.dr-selected-label{font-size:11px;font-family:var(--mono);color:var(--muted)}
+.dr-selected-val{color:var(--green);font-weight:600}
+.dr-actions{display:flex;gap:8px}
+.dr-cancel{padding:5px 14px;border-radius:8px;font-size:11px;font-family:var(--mono);cursor:pointer;border:1.5px solid var(--border);background:var(--bg3);color:var(--muted)}
+.dr-apply{padding:5px 14px;border-radius:8px;font-size:11px;font-family:var(--mono);cursor:pointer;border:1.5px solid var(--green);background:var(--green-l);color:var(--green);font-weight:600}
+.dr-apply:hover{background:var(--green);color:#fff}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .grid-2{grid-template-columns:1fr}
+  body{padding:14px}
+  #dr-panel{min-width:300px}
+  .dr-calendars{flex-direction:column}
+}
+
+/* ══════════════════════════════════════════
+   PIN SCREEN
+══════════════════════════════════════════ */
+#pin-overlay{
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0f1e3d 0%,#1a3560 50%,#0d2847 100%);
+  display:flex;align-items:center;justify-content:center;
+}
+.pin-box{
+  display:flex;flex-direction:column;align-items:center;gap:28px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:24px;padding:44px 52px;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+  backdrop-filter:blur(12px);
+  animation:pin-fadein .35s ease;
+}
+@keyframes pin-fadein{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Logo */
+.pin-logo{
+  display:flex;align-items:center;gap:12px;
+}
+.pin-logo-dot{
+  width:44px;height:44px;border-radius:14px;
+  background:linear-gradient(135deg,#059669,#2563eb);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:16px;color:#fff;
+  box-shadow:0 4px 16px rgba(37,99,235,.4);
+}
+.pin-logo-text{
+  font-size:20px;font-weight:700;color:#fff;
+  letter-spacing:-.4px;font-family:var(--mono);
+}
+.pin-logo-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
+
+/* Title */
+.pin-title{
+  text-align:center;
+}
+.pin-title h2{
+  font-size:15px;font-weight:600;color:rgba(255,255,255,.85);
+  letter-spacing:.2px;margin-bottom:4px;
+}
+.pin-title p{
+  font-size:12px;color:rgba(255,255,255,.40);
+  font-family:var(--mono);
+}
+
+/* Dots display */
+.pin-dots{
+  display:flex;gap:16px;height:20px;align-items:center;
+}
+.pin-dot{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.25);
+  background:transparent;
+  transition:all .15s;
+}
+.pin-dot.filled{
+  background:#2563eb;
+  border-color:#2563eb;
+  box-shadow:0 0 10px rgba(37,99,235,.6);
+}
+.pin-dot.error{
+  background:#dc2626;
+  border-color:#dc2626;
+  box-shadow:0 0 10px rgba(220,38,38,.6);
+}
+
+/* Keypad */
+.pin-pad{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  width:220px;
+}
+.pin-key{
+  height:60px;border-radius:14px;border:1.5px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.06);
+  color:#fff;font-size:20px;font-weight:600;font-family:var(--mono);
+  cursor:pointer;transition:all .12s;user-select:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.pin-key:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.22);transform:scale(1.04)}
+.pin-key:active{transform:scale(.96);background:rgba(37,99,235,.35)}
+.pin-key.del{font-size:18px;color:rgba(255,255,255,.6)}
+.pin-key.zero{grid-column:2}
+
+/* Error message */
+.pin-error{
+  font-size:12px;color:#f87171;font-family:var(--mono);
+  min-height:18px;text-align:center;
+  animation:pin-shake .35s ease;
+}
+@keyframes pin-shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-7px)}
+  40%{transform:translateX(7px)}
+  60%{transform:translateX(-5px)}
+  80%{transform:translateX(5px)}
+}
+
+/* Fade-out when unlocked */
+@keyframes pin-fadeout{
+  to{opacity:0;transform:scale(1.04)}
+}
+#pin-overlay.unlocking{
+  animation:pin-fadeout .4s ease forwards;
+}
+</style>
+</head>
+<body>
+
+<!-- ══ PIN OVERLAY ══════════════════════════════════════ -->
+<div id="pin-overlay">
+  <div class="pin-box" id="pin-box">
+
+    <!-- Logo -->
+    <div class="pin-logo">
+      <div class="pin-logo-dot">RK</div>
+      <div>
+        <div class="pin-logo-text">RITOKEY</div>
+        <div class="pin-logo-sub">HQS10000 · Sổ cấp hàng</div>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <div class="pin-title">
+      <h2>Nhập mã PIN để tiếp tục</h2>
+      <p>Trang nội bộ · Yêu cầu xác thực</p>
+    </div>
+
+    <!-- Dot indicators -->
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+
+    <!-- Keypad -->
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+      <button class="pin-key zero" onclick="pinPress('0')">0</button>
+    </div>
+
+    <!-- Error feedback -->
+    <div class="pin-error" id="pin-error"></div>
+
+  </div>
+</div>
+<!-- ══ / PIN OVERLAY ════════════════════════════════════ -->
+
+<div class="wrap">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-dot">RK</div>
+      <div>
+        <div class="logo-title">RITOKEY · HQS10000</div>
+        <div class="logo-sub">Sổ cấp hàng · <span id="last-updated">—</span></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button id="btn-refresh" onclick="loadData(true)">⟳ Làm mới</button>
+      <div class="badge badge-green">📦 <span id="h-orders">—</span> đơn</div>
+      <div class="badge badge-blue"><span id="h-rev">—</span></div>
+    </div>
+  </header>
+
+  <!-- Error banner -->
+  <div id="error-banner">
+    <span id="banner-msg"></span>
+    <button class="btn-retry" onclick="loadData(true)" style="padding:3px 10px;font-size:10px;margin-top:0">Thử lại</button>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Đang tải dữ liệu từ Google Sheets…</div>
+  </div>
+
+  <!-- Error screen -->
+  <div id="error-screen" style="display:none">
+    <div class="error-icon">⚠️</div>
+    <div class="error-msg">Không thể tải dữ liệu</div>
+    <div class="error-hint" id="error-detail"></div>
+    <div class="error-hint" style="margin-top:4px;color:var(--muted2)">
+      Kiểm tra: Sheet đã được chia sẻ "Anyone with the link can view" chưa?
+    </div>
+    <button class="btn-retry" onclick="loadData(true)">↺ Thử lại</button>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" style="display:none">
+
+    <!-- Filters -->
+    <div class="filters">
+      <!-- Date Range Picker -->
+      <div class="filter-group">
+        <div class="filter-label">Khoảng thời gian</div>
+        <div class="dr-wrap">
+          <button id="dr-btn" onclick="toggleDRPanel()">
+            <span class="dr-icon">📅</span>
+            <span class="dr-range" id="dr-label">Tất cả</span>
+            <span class="dr-arrow" id="dr-arrow">▾</span>
+          </button>
+          <div id="dr-panel">
+            <div class="dr-presets">
+              <span class="dr-preset active" data-p="all"       onclick="applyPreset(this)">Tất cả</span>
+              <span class="dr-preset"        data-p="today"     onclick="applyPreset(this)">Hôm nay</span>
+              <span class="dr-preset"        data-p="7d"        onclick="applyPreset(this)">7 ngày qua</span>
+              <span class="dr-preset"        data-p="14d"       onclick="applyPreset(this)">14 ngày qua</span>
+              <span class="dr-preset"        data-p="30d"       onclick="applyPreset(this)">30 ngày qua</span>
+              <span class="dr-preset"        data-p="thisweek"  onclick="applyPreset(this)">Tuần này</span>
+              <span class="dr-preset"        data-p="lastweek"  onclick="applyPreset(this)">Tuần trước</span>
+              <span class="dr-preset"        data-p="thismonth" onclick="applyPreset(this)">Tháng này</span>
+              <span class="dr-preset"        data-p="lastmonth" onclick="applyPreset(this)">Tháng trước</span>
+            </div>
+            <div class="dr-calendars">
+              <div class="dr-cal" id="cal-left"></div>
+              <div class="dr-cal" id="cal-right"></div>
+            </div>
+            <div class="dr-footer">
+              <div class="dr-selected-label">Đã chọn: <span class="dr-selected-val" id="dr-selected-text">—</span></div>
+              <div class="dr-actions">
+                <button class="dr-cancel" onclick="cancelDR()">Huỷ</button>
+                <button class="dr-apply"  onclick="applyDR()">Áp dụng</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- BU -->
+      <div class="filter-group">
+        <div class="filter-label">Business Unit</div>
+        <div class="tags" id="f-bus"></div>
+      </div>
+      <!-- Status -->
+      <div class="filter-group">
+        <div class="filter-label">Trạng thái</div>
+        <div class="tags" id="f-status">
+          <span class="tag active-blue" data-v="all"    onclick="setStatus(this)">Tất cả</span>
+          <span class="tag"             data-v="Done"   onclick="setStatus(this)">Done</span>
+          <span class="tag"             data-v="Cancel" onclick="setStatus(this)">Cancel</span>
+        </div>
+      </div>
+      <!-- SKU -->
+      <div class="filter-group">
+        <div class="filter-label">SKU</div>
+        <div class="sku-wrap">
+          <button id="sku-btn" onclick="toggleSKUPanel()">
+            ⬡ <span id="sku-count-label">—</span> <span id="sku-arrow">▾</span>
+          </button>
+          <div id="sku-panel">
+            <div class="sku-ctrl">
+              <span class="all" onclick="skuAll()">Chọn tất cả</span>
+              <span class="none" onclick="skuNone()">Bỏ chọn</span>
+            </div>
+            <div class="sku-grid" id="sku-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="grid-4" style="margin-bottom:16px">
+      <div class="kpi k-green">
+        <div class="kpi-glow"></div>
+        <div class="kpi-label">Tổng đơn hàng</div>
+        <div class="kpi-val" id="kpi-orders">—</div>
+        <div class="kpi-sub">đơn được cấp</div>
+      </div>
+      <div class="kpi k-blue">
+        <div class="kpi-glow"></div>
+        <div class="kpi-label">Tổng giá vốn</div>
+        <div class="kpi-val" id="kpi-rev">—</div>
+        <div class="kpi-sub" id="kpi-rev-full">—</div>
+      </div>
+      <div class="kpi k-yellow">
+        <div class="kpi-glow"></div>
+        <div class="kpi-label">Trung bình / đơn</div>
+        <div class="kpi-val" id="kpi-avg">—</div>
+        <div class="kpi-sub" id="kpi-avg-full">—</div>
+      </div>
+      <div class="kpi k-red">
+        <div class="kpi-glow"></div>
+        <div class="kpi-label">Tỷ lệ Cancel</div>
+        <div class="kpi-val" id="kpi-cancel">—</div>
+        <div class="kpi-sub" id="kpi-cancel-sub">—</div>
+      </div>
+    </div>
+
+    <!-- Combo chart -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="sec-title">
+        <span class="sec-dot" style="background:var(--green)"></span>
+        Giá Vốn & Số Đơn Theo Ngày
+        <span class="sec-right">Cột = Giá vốn · Đường = Số đơn</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-combo"></canvas></div>
+    </div>
+
+    <!-- Weekly status chart -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="sec-title" style="flex-wrap:wrap;gap:8px">
+        <span class="sec-dot" style="background:var(--red)"></span>
+        Trạng Thái Đơn Hàng Theo Tuần
+        <div class="tags" style="margin-left:auto" id="f-week-status">
+          <span class="tag active-blue" data-v="all"    onclick="setWeekStatus(this)">Tất cả</span>
+          <span class="tag"             data-v="Done"   onclick="setWeekStatus(this)">Done</span>
+          <span class="tag"             data-v="Cancel" onclick="setWeekStatus(this)">Cancel</span>
+          <span class="tag"             data-v="Other"  onclick="setWeekStatus(this)">Khác</span>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-weekly"></canvas></div>
+    </div>
+
+    <!-- Bottom row -->
+    <div class="grid-2">
+      <!-- SKU breakdown -->
+      <div class="card">
+        <div class="sec-title">
+          <span class="sec-dot" style="background:var(--blue)"></span>
+          Top SKU theo Giá Vốn
+        </div>
+        <div id="sku-bars"></div>
+      </div>
+
+      <!-- BU + Status -->
+      <div class="card">
+        <div class="sec-title">
+          <span class="sec-dot" style="background:var(--purple)"></span>
+          Theo BU & Trạng thái
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:0 10px;margin-bottom:8px">
+          <span style="font-size:9px;color:var(--muted2);font-weight:700;text-transform:uppercase;letter-spacing:.6px">BU</span>
+          <div style="display:flex;gap:20px">
+            <span style="font-size:9px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:.6px">Giá vốn</span>
+            <span style="font-size:9px;color:var(--blue);font-weight:700;text-transform:uppercase;letter-spacing:.6px">Đơn</span>
+          </div>
+        </div>
+        <div id="bu-rows"></div>
+        <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px" id="status-rows"></div>
+      </div>
+    </div>
+
+    <footer>
+      <span>RITOKEY · Internal Order Dashboard</span>
+      <span id="footer-info">—</span>
+    </footer>
+
+  </div><!-- /dashboard -->
+</div><!-- /wrap -->
+
+<script>
+/* ─── Config ─────────────────────────────────────────── */
+const SHEET_ID = '1ri89f9lm0z43dQHTNMLxs2OSubGtfMeZ-zIREnXRC50';
+const GID      = '2137132884';
+const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+const CACHE_MS = 5 * 60 * 1000;
+
+/* ─── State ──────────────────────────────────────────── */
+let RAW = [];
+let ALL_SKUS=[], ALL_BUS=[], ALL_DATES=[], ALL_WEEKS=[];
+let selBUs=new Set(), selSKUs=new Set();
+let selStatus='all', weekStatusFilter='all';
+let drStart=null, drEnd=null;
+let cachedAt=0;
+let chartCombo=null, chartWeekly=null;
+
+const SKU_PALETTE=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ea580c','#0891b2','#db2777','#65a30d','#0284c7'];
+const BU_COLORS={'BD10F3':'#7c3aed','BU2':'#059669','BU4':'#d97706','—':'#64748b'};
+
+/* ─── Helpers ─────────────────────────────────────────── */
+// ✅ FIX: hiển thị đúng đơn vị — fmt đã xử lý chuẩn cho số lớn
+const fmt = n =>
+  n>=1_000_000_000 ? (n/1_000_000_000).toFixed(2)+'B'
+  : n>=1_000_000   ? (n/1_000_000).toFixed(1)+'M'
+  : n>=1_000       ? Math.round(n/1_000)+'K'
+  : String(n);
+
+const fmtFull = n => n.toLocaleString('vi-VN')+'đ';
+
+function getWeekLabel(dateStr){
+  const [d,m]=dateStr.split('/').map(Number);
+  const dt=new Date(2026,m-1,d);
+  const dow=(dt.getDay()+6)%7;
+  const mon=new Date(dt); mon.setDate(dt.getDate()-dow);
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  const f=x=>`${String(x.getDate()).padStart(2,'0')}/${String(x.getMonth()+1).padStart(2,'0')}`;
+  return `${f(mon)}–${f(sun)}`;
+}
+
+function normalizeDate(raw){
+  if(!raw) return null;
+  const dm=raw.match(/^(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?$/);
+  if(dm){
+    const d=dm[1].padStart(2,'0'), m=dm[2].padStart(2,'0');
+    return parseInt(m)>12?`${m}/${d}`:`${d}/${m}`;
+  }
+  if(/^\d{5}$/.test(raw)){
+    const js=new Date((parseInt(raw)-25569)*86400*1000);
+    return `${String(js.getUTCDate()).padStart(2,'0')}/${String(js.getUTCMonth()+1).padStart(2,'0')}`;
+  }
+  const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(iso) return `${iso[3]}/${iso[2]}`;
+  return null;
+}
+
+function parseNum(s){ return Number((s||'').replace(/[^\d.-]/g,''))||0; }
+
+/* ─── Fetch & parse ───────────────────────────────────── */
+async function loadData(force=false){
+  const now=Date.now();
+  if(!force && RAW.length>0 && now-cachedAt<CACHE_MS){ render(); return; }
+  setBtnLoading(true);
+  if(RAW.length===0) show('loading');
+  hideBanner();
+  try{
+    const res=await fetch(CSV_URL+'&t='+now,{cache:'no-store'});
+    if(!res.ok) throw new Error(`HTTP ${res.status} — kiểm tra quyền sheet`);
+    const text=await res.text();
+    const result=Papa.parse(text,{skipEmptyLines:false});
+    const allRows=result.data;
+
+    // Tìm header row (dòng có "STT" ở cột đầu)
+    let headerIdx=allRows.findIndex(r=>r[0]?.toString().trim()==='STT');
+    if(headerIdx===-1) headerIdx=6;
+
+    const rows=allRows.slice(headerIdx+1).filter(r=>r.some(c=>c?.toString().trim()));
+    if(!rows.length) throw new Error('Sheet trống hoặc header không đúng');
+
+    // Cấu trúc cột: A=STT, B=SKU, C=NCC, D=Ngày cấp, E=Mã SP, F=Giá vốn, G=Trạng thái, H=Order ID, I=Team(BU)
+    RAW=rows.map(c=>{
+      const sku   = c[1]?.trim();
+      const date  = normalizeDate(c[3]?.trim()); // D = Ngày cấp
+      // ✅ FIX: nhân × 1000 để hiển thị đúng số liệu giá vốn
+      const cost  = parseNum(c[5]) * 1000;       // F = Giá vốn
+      const status= c[6]?.trim()||'—';           // G = Trạng thái
+      const bu    = c[8]?.trim()||'—';           // I = Team/BU
+      if(!date||!sku) return null;
+      return [c[0]?.trim(), sku, date, cost, status, bu];
+    }).filter(Boolean);
+
+    if(!RAW.length) throw new Error('Không parse được dòng nào — kiểm tra cấu trúc cột');
+
+    cachedAt=Date.now();
+    deriveConstants();
+    initFilters();
+    show('dashboard');
+    render();
+  }catch(e){
+    if(RAW.length>0){ showBanner(e.message); render(); }
+    else { document.getElementById('error-detail').textContent=e.message; show('error-screen'); }
+  } finally { setBtnLoading(false); }
+}
+
+function deriveConstants(){
+  ALL_SKUS=[...new Set(RAW.map(r=>r[1]))].sort();
+  ALL_BUS=[...new Set(RAW.map(r=>r[5]))].sort();
+  ALL_DATES=[...new Set(RAW.map(r=>r[2]))].sort((a,b)=>{
+    const[da,ma]=a.split('/').map(Number),[db,mb]=b.split('/').map(Number);
+    return (ma*100+da)-(mb*100+db);
+  });
+  ALL_WEEKS=[...new Set(ALL_DATES.map(getWeekLabel))].sort();
+  if(!selBUs.size)  selBUs=new Set(ALL_BUS);
+  if(!selSKUs.size) selSKUs=new Set(ALL_SKUS);
+}
+
+/* ─── Filter init ─────────────────────────────────────── */
+function initFilters(){
+  const fb=document.getElementById('f-bus');
+  fb.innerHTML=ALL_BUS.map(b=>{
+    const color=b==='BD10F3'?'purple':b==='BU2'?'green':b==='BU4'?'yellow':'blue';
+    return `<span class="tag ${selBUs.has(b)?'active-'+color:''}" data-v="${b}" data-color="${color}" onclick="toggleBU(this)">${b}</span>`;
+  }).join('');
+  const sl=document.getElementById('sku-list');
+  sl.innerHTML=ALL_SKUS.map(s=>`
+    <label class="sku-item ${selSKUs.has(s)?'checked':''}" data-v="${s}">
+      <input type="checkbox" ${selSKUs.has(s)?'checked':''} onchange="toggleSKU('${s}',this)"/>
+      ${s.replace(/_$/,'')}
+    </label>`).join('');
+  updateSKULabel();
+}
+
+/* ─── Filter actions ──────────────────────────────────── */
+function toggleBU(el){
+  const b=el.dataset.v, c=el.dataset.color;
+  selBUs.has(b)?selBUs.delete(b):selBUs.add(b);
+  el.className='tag'+(selBUs.has(b)?` active-${c}`:'');
+  render();
+}
+function setStatus(el){
+  selStatus=el.dataset.v;
+  document.querySelectorAll('#f-status .tag').forEach(t=>{
+    t.className='tag'+(t.dataset.v===selStatus?' active-blue':'');
+  });
+  render();
+}
+function setWeekStatus(el){
+  weekStatusFilter=el.dataset.v;
+  document.querySelectorAll('#f-week-status .tag').forEach(t=>{
+    const map={all:'blue',Done:'green',Cancel:'red',Other:'yellow'};
+    t.className='tag'+(t.dataset.v===weekStatusFilter?` active-${map[t.dataset.v]||'blue'}`:'');
+  });
+  renderWeeklyChart();
+}
+function toggleSKU(sku,cb){
+  cb.checked?selSKUs.add(sku):selSKUs.delete(sku);
+  const lbl=cb.closest('.sku-item');
+  if(lbl) lbl.className='sku-item'+(cb.checked?' checked':'');
+  updateSKULabel(); render();
+}
+function skuAll(){ selSKUs=new Set(ALL_SKUS); initFilters(); render(); }
+function skuNone(){ selSKUs=new Set(); initFilters(); render(); }
+function updateSKULabel(){
+  document.getElementById('sku-count-label').textContent=`${selSKUs.size}/${ALL_SKUS.length} SKU`;
+}
+
+let skuPanelOpen=false;
+function toggleSKUPanel(){
+  skuPanelOpen=!skuPanelOpen;
+  document.getElementById('sku-panel').className=skuPanelOpen?'open':'';
+  document.getElementById('sku-arrow').textContent=skuPanelOpen?'▴':'▾';
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.sku-wrap')){
+    skuPanelOpen=false;
+    document.getElementById('sku-panel').className='';
+    document.getElementById('sku-arrow').textContent='▾';
+  }
+});
+
+/* ─── Filtered data ───────────────────────────────────── */
+function dateStrToObj(dateStr){
+  const [d,m]=dateStr.split('/').map(Number);
+  return new Date(2026,m-1,d);
+}
+function getFiltered(){
+  return RAW.filter(([,sku,date,,status,bu])=>{
+    if(!selSKUs.has(sku)) return false;
+    if(!selBUs.has(bu||'—')) return false;
+    if(selStatus!=='all' && status!==selStatus) return false;
+    if(drStart||drEnd){
+      const dt=dateStrToObj(date);
+      if(drStart && dt<drStart) return false;
+      if(drEnd   && dt>drEnd)   return false;
+    }
+    return true;
+  });
+}
+
+/* ─── Render ──────────────────────────────────────────── */
+function render(){
+  const f=getFiltered();
+  const total=f.length;
+  const rev=f.reduce((s,r)=>s+r[3],0);
+  const avg=total>0?Math.round(rev/total):0;
+  const cancel=f.filter(r=>r[4]==='Cancel').length;
+  const cancelRate=total>0?((cancel/total)*100).toFixed(1):'0.0';
+
+  document.getElementById('h-orders').textContent=total;
+  document.getElementById('h-rev').textContent=fmt(rev)+'đ';
+  document.getElementById('kpi-orders').textContent=total;
+  document.getElementById('kpi-rev').textContent=fmt(rev);
+  document.getElementById('kpi-rev-full').textContent=fmtFull(rev);
+  document.getElementById('kpi-avg').textContent=fmt(avg);
+  document.getElementById('kpi-avg-full').textContent=fmtFull(avg);
+  document.getElementById('kpi-cancel').textContent=cancelRate+'%';
+  document.getElementById('kpi-cancel-sub').textContent=cancel+' đơn bị huỷ';
+
+  const upd=cachedAt?new Date(cachedAt).toLocaleString('vi-VN'):'—';
+  document.getElementById('last-updated').textContent=cachedAt?new Date(cachedAt).toLocaleTimeString('vi-VN'):'—';
+  document.getElementById('footer-info').textContent=`${RAW.length} rows · Cập nhật ${upd}`;
+
+  renderComboChart(f);
+  renderWeeklyChart();
+  renderSKUBars(f);
+  renderBURows(f);
+}
+
+/* ─── Chart defaults (light theme) ───────────────────── */
+const CHART_DEFAULTS={
+  tickColor:'#64748b',
+  gridColor:'#e2e8f0',
+  fontMono:'JetBrains Mono',
+};
+
+/* ─── Combo chart ─────────────────────────────────────── */
+function renderComboChart(f){
+  const dates=ALL_DATES.filter(d=>f.some(r=>r[2]===d));
+  const revData=dates.map(d=>f.filter(r=>r[2]===d).reduce((s,r)=>s+r[3],0));
+  const ordData=dates.map(d=>f.filter(r=>r[2]===d).length);
+
+  if(chartCombo) chartCombo.destroy();
+  const ctx=document.getElementById('chart-combo').getContext('2d');
+  chartCombo=new Chart(ctx,{
+    data:{labels:dates,datasets:[
+      {type:'bar',label:'Giá vốn',data:revData,
+       backgroundColor:'rgba(5,150,105,.65)',borderRadius:5,yAxisID:'y'},
+      {type:'line',label:'Số đơn',data:ordData,
+       borderColor:'#d97706',backgroundColor:'transparent',borderWidth:2.5,
+       pointBackgroundColor:'#d97706',pointRadius:4,tension:.3,yAxisID:'y2'},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:CHART_DEFAULTS.tickColor,font:{family:CHART_DEFAULTS.fontMono,size:11}}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#dde4f0',borderWidth:1,
+          titleColor:'#64748b',bodyColor:'#1e2d4d',
+          callbacks:{label:c=>c.dataset.label==='Số đơn'?c.parsed.y+' đơn':fmtFull(c.parsed.y)}},
+      },
+      scales:{
+        x:{ticks:{color:CHART_DEFAULTS.tickColor,font:{family:CHART_DEFAULTS.fontMono,size:10}},
+           grid:{color:CHART_DEFAULTS.gridColor},border:{color:CHART_DEFAULTS.gridColor}},
+        y:{ticks:{color:CHART_DEFAULTS.tickColor,font:{family:CHART_DEFAULTS.fontMono,size:10},callback:fmt},
+           grid:{color:CHART_DEFAULTS.gridColor},border:{display:false}},
+        y2:{position:'right',ticks:{color:CHART_DEFAULTS.tickColor,font:{family:CHART_DEFAULTS.fontMono,size:10}},
+            grid:{display:false},border:{display:false}},
+      }
+    }
+  });
+}
+
+/* ─── Weekly status chart ─────────────────────────────── */
+function renderWeeklyChart(){
+  const weeks=ALL_WEEKS.filter(w=>ALL_DATES.some(d=>{
+    if(getWeekLabel(d)!==w) return false;
+    if(drStart||drEnd){const dt=dateStrToObj(d);if(drStart&&dt<drStart)return false;if(drEnd&&dt>drEnd)return false;}
+    return true;
+  }));
+  const show=v=>weekStatusFilter==='all'||weekStatusFilter===v;
+
+  const makeData=(filter)=>weeks.map(w=>RAW.filter(r=>{
+    if(getWeekLabel(r[2])!==w||!selSKUs.has(r[1])||!selBUs.has(r[5]||'—')) return false;
+    if(!filter(r)) return false;
+    if(drStart||drEnd){const dt=dateStrToObj(r[2]);if(drStart&&dt<drStart)return false;if(drEnd&&dt>drEnd)return false;}
+    return true;
+  }).length);
+
+  const doneData  =show('Done')  ?makeData(r=>r[4]==='Done')  :weeks.map(()=>0);
+  const cancelData=show('Cancel')?makeData(r=>r[4]==='Cancel'):weeks.map(()=>0);
+  const otherData =show('Other') ?makeData(r=>r[4]!=='Done'&&r[4]!=='Cancel'):weeks.map(()=>0);
+  const totalData =weeks.map((_,i)=>doneData[i]+cancelData[i]+otherData[i]);
+
+  if(chartWeekly) chartWeekly.destroy();
+  const ctx=document.getElementById('chart-weekly').getContext('2d');
+  chartWeekly=new Chart(ctx,{
+    data:{labels:weeks,datasets:[
+      {type:'bar',label:'Done',  data:doneData,  backgroundColor:'rgba(5,150,105,.75)',  stack:'s',borderRadius:0},
+      {type:'bar',label:'Cancel',data:cancelData,backgroundColor:'rgba(220,38,38,.75)',  stack:'s'},
+      {type:'bar',label:'Khác', data:otherData, backgroundColor:'rgba(217,119,6,.65)', stack:'s',borderRadius:{topLeft:5,topRight:5}},
+      {type:'line',label:'Tổng',data:totalData,borderColor:'#7c3aed',backgroundColor:'transparent',
+       borderWidth:2.5,pointBackgroundColor:'#7c3aed',pointRadius:3,tension:.3},
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:CHART_DEFAULTS.tickColor,font:{family:CHART_DEFAULTS.fontMono,size:11}}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#dde4f0',borderWidth:1,
+          titleColor:'#64748b',bodyColor:'#1e2d4d',
+          callbacks:{label:c=>c.parsed.y+' đơn'}},
+      },
+      scales:{
+        x:{ticks:{color:CHART_DEFAULTS.tickColor,font:{family:CHART_DEFAULTS.fontMono,size:10}},
+           grid:{color:CHART_DEFAULTS.gridColor},border:{color:CHART_DEFAULTS.gridColor}},
+        y:{ticks:{color:CHART_DEFAULTS.tickColor,font:{family:CHART_DEFAULTS.fontMono,size:10}},
+           grid:{color:CHART_DEFAULTS.gridColor},border:{display:false}},
+      }
+    }
+  });
+}
+
+/* ─── SKU bars ────────────────────────────────────────── */
+function renderSKUBars(f){
+  const m={};
+  f.forEach(([,sku,,cost])=>{ if(!m[sku])m[sku]={sku,rev:0,n:0}; m[sku].rev+=cost; m[sku].n++; });
+  const sorted=Object.values(m).sort((a,b)=>b.rev-a.rev).slice(0,10);
+  const maxR=sorted[0]?.rev||1;
+  document.getElementById('sku-bars').innerHTML=sorted.map((item,i)=>{
+    const c=SKU_PALETTE[i%SKU_PALETTE.length];
+    const pct=Math.max((item.rev/maxR)*100,5);
+    return `<div class="sku-row">
+      <div class="sku-name" title="${item.sku}">${item.sku.replace(/_$/,'')}</div>
+      <div class="sku-bar-bg">
+        <div class="sku-bar" style="width:${pct}%;background:linear-gradient(90deg,${c}22,${c}60);border-left:3px solid ${c}">
+          <span style="color:${c}">${fmt(item.rev)}</span>
+        </div>
+      </div>
+      <div class="sku-count" style="color:${c}">${item.n}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ─── BU rows ─────────────────────────────────────────── */
+function renderBURows(f){
+  const m={};
+  f.forEach(([,,,cost,,bu])=>{ const k=bu||'—'; if(!m[k])m[k]={bu:k,rev:0,n:0}; m[k].rev+=cost; m[k].n++; });
+  const sorted=Object.values(m).sort((a,b)=>b.rev-a.rev);
+  document.getElementById('bu-rows').innerHTML=sorted.map(item=>{
+    const c=BU_COLORS[item.bu]||'#64748b';
+    return `<div class="bu-row">
+      <div class="bu-left"><div class="bu-dot" style="background:${c}"></div><div class="bu-name">${item.bu}</div></div>
+      <div class="bu-nums"><span class="bu-rev">${fmt(item.rev)}</span><span class="bu-ord">${item.n}</span></div>
+    </div>`;
+  }).join('');
+
+  const statusRows=[{l:'Done',c:'var(--green)'},{l:'Cancel',c:'var(--red)'}].map(({l,c})=>{
+    const rows=f.filter(r=>r[4]===l);
+    const rev=rows.reduce((s,r)=>s+r[3],0);
+    return `<div class="bu-row" style="background:${l==='Done'?'var(--green-l)':'var(--red-l)'};border-color:${l==='Done'?'var(--green)33':'var(--red)33'}">
+      <div class="bu-left"><div class="bu-dot" style="background:${c}"></div><div class="bu-name">${l}</div></div>
+      <div class="bu-nums">
+        <span style="font-family:var(--mono);font-size:11px;color:${c};font-weight:600">${fmt(rev)}</span>
+        <span class="bu-ord">${rows.length}</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('status-rows').innerHTML=statusRows;
+}
+
+/* ─── UI helpers ──────────────────────────────────────── */
+function show(id){
+  ['loading','error-screen','dashboard'].forEach(i=>{
+    const el=document.getElementById(i);
+    el.style.display=(i===id)?(['loading','error-screen'].includes(i)?'flex':'block'):'none';
+  });
+}
+function showBanner(msg){
+  const b=document.getElementById('error-banner'); b.classList.add('show');
+  document.getElementById('banner-msg').textContent='⚠ '+msg;
+}
+function hideBanner(){ document.getElementById('error-banner').classList.remove('show'); }
+function setBtnLoading(on){
+  const b=document.getElementById('btn-refresh');
+  b.disabled=on; b.textContent=on?'⟳ Đang tải…':'⟳ Làm mới';
+}
+
+/* ─── Date Range Picker ───────────────────────────────── */
+let drPanelOpen=false;
+let calLeftYear=2026, calLeftMonth=4;
+let calRightYear=2026, calRightMonth=5;
+let pickStart=null, pickEnd=null, hoverDate=null;
+const MONTHS_VI=['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+const DAYS_VI=['T2','T3','T4','T5','T6','T7','CN'];
+
+function toggleDRPanel(){
+  drPanelOpen=!drPanelOpen;
+  document.getElementById('dr-panel').className=drPanelOpen?'open':'';
+  document.getElementById('dr-arrow').textContent=drPanelOpen?'▴':'▾';
+  if(drPanelOpen){ pickStart=drStart?new Date(drStart):null; pickEnd=drEnd?new Date(drEnd):null; renderCals(); }
+}
+function closeDRPanel(){
+  drPanelOpen=false;
+  document.getElementById('dr-panel').className='';
+  document.getElementById('dr-arrow').textContent='▾';
+}
+document.addEventListener('click',e=>{ if(!e.target.closest('.dr-wrap')) closeDRPanel(); });
+
+function renderCals(){
+  renderCal('cal-left', calLeftYear, calLeftMonth, 'left');
+  renderCal('cal-right', calRightYear, calRightMonth, 'right');
+  updateSelectedText();
+}
+
+function renderCal(elId, year, month, side){
+  const el=document.getElementById(elId);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const dataDates=new Set(ALL_DATES);
+  const firstDay=new Date(year,month,1);
+  const startDow=(firstDay.getDay()+6)%7;
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const prevFn=side==='left'?"navCal('left',-1)":"navCal('right',-1)";
+  const nextFn=side==='left'?"navCal('left',1)":"navCal('right',1)";
+
+  let html=`<div class="dr-cal-header">
+    <button class="dr-cal-nav" onclick="${prevFn}">‹</button>
+    <span class="dr-cal-title">${MONTHS_VI[month]} ${year}</span>
+    <button class="dr-cal-nav" onclick="${nextFn}">›</button>
+  </div>
+  <div class="dr-weekdays">${DAYS_VI.map(d=>`<div class="dr-wd">${d}</div>`).join('')}</div>
+  <div class="dr-days">`;
+
+  for(let i=0;i<startDow;i++) html+=`<div class="dr-day empty"></div>`;
+
+  for(let d=1;d<=daysInMonth;d++){
+    const dt=new Date(year,month,d); dt.setHours(0,0,0,0);
+    const ddmm=`${String(d).padStart(2,'0')}/${String(month+1).padStart(2,'0')}`;
+    const isToday=dt.getTime()===today.getTime();
+    const hasData=dataDates.has(ddmm);
+    const s=pickStart, e2=pickEnd||hoverDate;
+    const lo=s&&e2?(s<=e2?s:e2):s;
+    const hi=s&&e2?(s<=e2?e2:s):null;
+    const isStart=s&&dt.getTime()===s.getTime();
+    const isEnd=e2&&dt.getTime()===e2.getTime();
+    const inRange=lo&&hi&&dt>lo&&dt<hi;
+    let cls='dr-day';
+    if(isStart) cls+=' range-start';
+    if(isEnd)   cls+=' range-end';
+    if(inRange) cls+=' in-range';
+    if(isToday) cls+=' today';
+    if(hasData) cls+=' has-data';
+    html+=`<div class="${cls}" onclick="pickDay(${year},${month},${d})" onmouseenter="hoverDay(${year},${month},${d})" onmouseleave="hoverDay(null,null,null)">${d}</div>`;
+  }
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+function navCal(side,dir){
+  if(side==='left'){ calLeftMonth+=dir; if(calLeftMonth<0){calLeftMonth=11;calLeftYear--;} if(calLeftMonth>11){calLeftMonth=0;calLeftYear++;} }
+  else { calRightMonth+=dir; if(calRightMonth<0){calRightMonth=11;calRightYear--;} if(calRightMonth>11){calRightMonth=0;calRightYear++;} }
+  renderCals();
+}
+
+function pickDay(year,month,day){
+  const dt=new Date(year,month,day); dt.setHours(0,0,0,0);
+  if(!pickStart||pickEnd){ pickStart=dt; pickEnd=null; document.querySelectorAll('.dr-preset').forEach(p=>p.classList.remove('active')); }
+  else { if(dt<pickStart){pickEnd=pickStart;pickStart=dt;}else{pickEnd=dt;} }
+  renderCals();
+}
+
+function hoverDay(year,month,day){
+  if(year===null) hoverDate=null;
+  else if(pickStart&&!pickEnd){ hoverDate=new Date(year,month,day); hoverDate.setHours(0,0,0,0); }
+  else hoverDate=null;
+  renderCals();
+}
+
+function updateSelectedText(){
+  const el=document.getElementById('dr-selected-text');
+  if(!pickStart&&!pickEnd){ el.textContent='Tất cả'; return; }
+  const f2=dt=>`${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+  if(pickStart&&pickEnd) el.textContent=`${f2(pickStart)} → ${f2(pickEnd)}`;
+  else if(pickStart) el.textContent=`Từ ${f2(pickStart)}`;
+}
+
+function applyDR(){ drStart=pickStart||null; drEnd=pickEnd||null; updateDRLabel(); closeDRPanel(); render(); }
+function cancelDR(){ closeDRPanel(); }
+
+function updateDRLabel(){
+  const el=document.getElementById('dr-label');
+  if(!drStart&&!drEnd){ el.textContent='Tất cả'; return; }
+  const f=dt=>`${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`;
+  if(drStart&&drEnd) el.textContent=`${f(drStart)} → ${f(drEnd)}`;
+  else if(drStart)   el.textContent=`Từ ${f(drStart)}`;
+}
+
+function applyPreset(el){
+  document.querySelectorAll('.dr-preset').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  const p=el.dataset.p;
+  const now=new Date(); now.setHours(0,0,0,0);
+  if(p==='all'){ pickStart=null; pickEnd=null; }
+  else if(p==='today'){ pickStart=new Date(now); pickEnd=new Date(now); }
+  else if(p==='7d'){ pickStart=new Date(now); pickStart.setDate(now.getDate()-6); pickEnd=new Date(now); }
+  else if(p==='14d'){ pickStart=new Date(now); pickStart.setDate(now.getDate()-13); pickEnd=new Date(now); }
+  else if(p==='30d'){ pickStart=new Date(now); pickStart.setDate(now.getDate()-29); pickEnd=new Date(now); }
+  else if(p==='thisweek'){ const dow=(now.getDay()+6)%7; pickStart=new Date(now); pickStart.setDate(now.getDate()-dow); pickEnd=new Date(pickStart); pickEnd.setDate(pickStart.getDate()+6); }
+  else if(p==='lastweek'){ const dow=(now.getDay()+6)%7; pickEnd=new Date(now); pickEnd.setDate(now.getDate()-dow-1); pickStart=new Date(pickEnd); pickStart.setDate(pickEnd.getDate()-6); }
+  else if(p==='thismonth'){ pickStart=new Date(now.getFullYear(),now.getMonth(),1); pickEnd=new Date(now.getFullYear(),now.getMonth()+1,0); }
+  else if(p==='lastmonth'){ pickStart=new Date(now.getFullYear(),now.getMonth()-1,1); pickEnd=new Date(now.getFullYear(),now.getMonth(),0); }
+  if(pickStart){ calLeftYear=pickStart.getFullYear(); calLeftMonth=pickStart.getMonth(); calRightYear=calLeftYear; calRightMonth=calLeftMonth+1; if(calRightMonth>11){calRightMonth=0;calRightYear++;} }
+  renderCals();
+}
+
+/* ─── PIN Logic ───────────────────────────────────────── */
+const PIN_CORRECT = '5678';
+const SESSION_KEY = 'rk_auth';
+let pinInput = '';
+let pinLocked = false;   // true khi đang hiện thị lỗi
+let failCount = 0;
+
+// Kiểm tra session — nếu đã nhập đúng trong tab này thì bỏ qua PIN
+function checkSession(){
+  return sessionStorage.getItem(SESSION_KEY) === '1';
+}
+
+function pinPress(digit){
+  if(pinLocked) return;
+  if(pinInput.length >= 4) return;
+  pinInput += digit;
+  updateDots();
+  if(pinInput.length === 4) setTimeout(verifyPIN, 120);
+}
+
+function pinDel(){
+  if(pinLocked) return;
+  pinInput = pinInput.slice(0, -1);
+  updateDots();
+  clearError();
+}
+
+function updateDots(){
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('d'+i);
+    el.className='pin-dot'+(i<pinInput.length?' filled':'');
+  }
+}
+
+function verifyPIN(){
+  if(pinInput === PIN_CORRECT){
+    // ✅ Đúng — unlock
+    sessionStorage.setItem(SESSION_KEY,'1');
+    const overlay=document.getElementById('pin-overlay');
+    overlay.classList.add('unlocking');
+    setTimeout(()=>{
+      overlay.remove();
+      loadData();   // bắt đầu load data sau khi xác thực
+    }, 400);
+  } else {
+    // ❌ Sai — rung + thông báo
+    failCount++;
+    showPinError(failCount);
+    // Đổi dots sang màu đỏ
+    for(let i=0;i<4;i++) document.getElementById('d'+i).className='pin-dot error';
+    pinLocked=true;
+    setTimeout(()=>{
+      pinInput='';
+      pinLocked=false;
+      updateDots();
+    }, 900);
+  }
+}
+
+function showPinError(n){
+  const el=document.getElementById('pin-error');
+  const msgs={
+    1:'Mã PIN không đúng. Thử lại.',
+    2:'Sai lần 2. Còn 1 lần.',
+    3:'Sai 3 lần. Vui lòng liên hệ quản trị viên.',
+  };
+  el.textContent = msgs[Math.min(n,3)] || 'Mã PIN không đúng.';
+  // Reset animation
+  el.style.animation='none';
+  el.offsetHeight; // reflow
+  el.style.animation='';
+}
+
+function clearError(){
+  document.getElementById('pin-error').textContent='';
+}
+
+// Hỗ trợ nhập bàn phím vật lý
+document.addEventListener('keydown', e=>{
+  if(!document.getElementById('pin-overlay')) return;
+  if(e.key>='0' && e.key<='9') pinPress(e.key);
+  else if(e.key==='Backspace') pinDel();
+  else if(e.key==='Enter' && pinInput.length===4) verifyPIN();
+});
+
+/* ─── Boot ────────────────────────────────────────────── */
+if(checkSession()){
+  // Đã xác thực trong tab này → ẩn PIN và load ngay
+  document.getElementById('pin-overlay').style.display='none';
+  loadData();
+}
+// Nếu chưa xác thực → PIN overlay hiện sẵn, loadData() được gọi sau khi unlock
+</script>
+</body>
+</html>
