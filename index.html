@@ -365,43 +365,53 @@ footer{
   font-family:var(--mono);
 }
 
-/* Dots display */
-.pin-dots{
-  display:flex;gap:16px;height:20px;align-items:center;
+/* Login form */
+.pin-form{
+  display:flex;flex-direction:column;gap:14px;width:280px;
 }
-.pin-dot{
-  width:14px;height:14px;border-radius:50%;
-  border:2px solid rgba(255,255,255,.25);
-  background:transparent;
-  transition:all .15s;
+.pin-field{
+  display:flex;flex-direction:column;gap:6px;
 }
-.pin-dot.filled{
-  background:#2563eb;
-  border-color:#2563eb;
-  box-shadow:0 0 10px rgba(37,99,235,.6);
+.pin-field label{
+  font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;
+  color:rgba(255,255,255,.5);font-family:var(--mono);
 }
-.pin-dot.error{
-  background:#dc2626;
-  border-color:#dc2626;
-  box-shadow:0 0 10px rgba(220,38,38,.6);
-}
-
-/* Keypad */
-.pin-pad{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
-  width:220px;
-}
-.pin-key{
-  height:60px;border-radius:14px;border:1.5px solid rgba(255,255,255,.10);
+.pin-input-wrap{position:relative;display:flex;align-items:center}
+.pin-input{
+  width:100%;height:46px;box-sizing:border-box;
+  border-radius:12px;border:1.5px solid rgba(255,255,255,.12);
   background:rgba(255,255,255,.06);
-  color:#fff;font-size:20px;font-weight:600;font-family:var(--mono);
-  cursor:pointer;transition:all .12s;user-select:none;
-  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:15px;font-family:var(--mono);
+  padding:0 14px;outline:none;transition:all .15s;
 }
-.pin-key:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.22);transform:scale(1.04)}
-.pin-key:active{transform:scale(.96);background:rgba(37,99,235,.35)}
-.pin-key.del{font-size:18px;color:rgba(255,255,255,.6)}
-.pin-key.zero{grid-column:2}
+.pin-input::placeholder{color:rgba(255,255,255,.3)}
+.pin-input:focus{
+  border-color:#2563eb;background:rgba(37,99,235,.10);
+  box-shadow:0 0 0 3px rgba(37,99,235,.18);
+}
+.pin-input.error{
+  border-color:#dc2626;
+  box-shadow:0 0 0 3px rgba(220,38,38,.18);
+}
+/* Show/hide password */
+.pin-toggle{
+  position:absolute;right:10px;
+  background:none;border:none;cursor:pointer;
+  color:rgba(255,255,255,.45);font-size:12px;font-family:var(--mono);
+  padding:4px 6px;border-radius:6px;transition:all .12s;
+}
+.pin-toggle:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.08)}
+/* Login button */
+.pin-submit{
+  height:48px;margin-top:4px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,#059669,#2563eb);
+  color:#fff;font-size:15px;font-weight:600;font-family:var(--mono);
+  cursor:pointer;transition:all .15s;letter-spacing:.3px;
+  box-shadow:0 6px 20px rgba(37,99,235,.35);
+}
+.pin-submit:hover{transform:translateY(-1px);box-shadow:0 8px 26px rgba(37,99,235,.5)}
+.pin-submit:active{transform:translateY(0) scale(.99)}
+.pin-submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
 
 /* Error message */
 .pin-error{
@@ -443,31 +453,32 @@ footer{
 
     <!-- Title -->
     <div class="pin-title">
-      <h2>Nhập mã PIN để tiếp tục</h2>
+      <h2>Đăng nhập để tiếp tục</h2>
       <p>Trang nội bộ · Yêu cầu xác thực</p>
     </div>
 
-    <!-- Dot indicators -->
-    <div class="pin-dots" id="pin-dots">
-      <div class="pin-dot" id="d0"></div>
-      <div class="pin-dot" id="d1"></div>
-      <div class="pin-dot" id="d2"></div>
-      <div class="pin-dot" id="d3"></div>
-    </div>
+    <!-- Login form -->
+    <div class="pin-form">
+      <div class="pin-field">
+        <label for="login-user">Tài khoản</label>
+        <div class="pin-input-wrap">
+          <input class="pin-input" id="login-user" type="text"
+                 autocomplete="username" placeholder="Nhập tài khoản"
+                 autocapitalize="off" spellcheck="false">
+        </div>
+      </div>
 
-    <!-- Keypad -->
-    <div class="pin-pad">
-      <button class="pin-key" onclick="pinPress('1')">1</button>
-      <button class="pin-key" onclick="pinPress('2')">2</button>
-      <button class="pin-key" onclick="pinPress('3')">3</button>
-      <button class="pin-key" onclick="pinPress('4')">4</button>
-      <button class="pin-key" onclick="pinPress('5')">5</button>
-      <button class="pin-key" onclick="pinPress('6')">6</button>
-      <button class="pin-key" onclick="pinPress('7')">7</button>
-      <button class="pin-key" onclick="pinPress('8')">8</button>
-      <button class="pin-key" onclick="pinPress('9')">9</button>
-      <button class="pin-key del" onclick="pinDel()">⌫</button>
-      <button class="pin-key zero" onclick="pinPress('0')">0</button>
+      <div class="pin-field">
+        <label for="login-pass">Mật khẩu</label>
+        <div class="pin-input-wrap">
+          <input class="pin-input" id="login-pass" type="password"
+                 autocomplete="current-password" placeholder="Nhập mật khẩu">
+          <button type="button" class="pin-toggle" id="login-toggle"
+                  onclick="togglePass()">Hiện</button>
+        </div>
+      </div>
+
+      <button class="pin-submit" id="login-btn" onclick="doLogin()">Đăng nhập</button>
     </div>
 
     <!-- Error feedback -->
@@ -1191,42 +1202,40 @@ function applyPreset(el){
   renderCals();
 }
 
-/* ─── PIN Logic ───────────────────────────────────────── */
-const PIN_CORRECT = '5678';
+/* ─── Login Logic ─────────────────────────────────────── */
+// Danh sách tài khoản hợp lệ. Thêm/bớt tài khoản tại đây.
+const ACCOUNTS = [
+  { user: 'ritokey@hqgroup.vn', pass: 'Ritokey^^2026' },
+];
 const SESSION_KEY = 'rk_auth';
-let pinInput = '';
-let pinLocked = false;   // true khi đang hiện thị lỗi
+let loginLocked = false;
 let failCount = 0;
 
-// Kiểm tra session — nếu đã nhập đúng trong tab này thì bỏ qua PIN
+// Kiểm tra session — nếu đã đăng nhập trong tab này thì bỏ qua màn hình login
 function checkSession(){
   return sessionStorage.getItem(SESSION_KEY) === '1';
 }
 
-function pinPress(digit){
-  if(pinLocked) return;
-  if(pinInput.length >= 4) return;
-  pinInput += digit;
-  updateDots();
-  if(pinInput.length === 4) setTimeout(verifyPIN, 120);
+function togglePass(){
+  const inp = document.getElementById('login-pass');
+  const btn = document.getElementById('login-toggle');
+  if(inp.type === 'password'){ inp.type='text'; btn.textContent='Ẩn'; }
+  else { inp.type='password'; btn.textContent='Hiện'; }
 }
 
-function pinDel(){
-  if(pinLocked) return;
-  pinInput = pinInput.slice(0, -1);
-  updateDots();
-  clearError();
-}
+function doLogin(){
+  if(loginLocked) return;
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
 
-function updateDots(){
-  for(let i=0;i<4;i++){
-    const el=document.getElementById('d'+i);
-    el.className='pin-dot'+(i<pinInput.length?' filled':'');
+  if(!user || !pass){
+    showLoginError('Vui lòng nhập đầy đủ tài khoản và mật khẩu.');
+    return;
   }
-}
 
-function verifyPIN(){
-  if(pinInput === PIN_CORRECT){
+  const ok = ACCOUNTS.some(a => a.user === user && a.pass === pass);
+
+  if(ok){
     // ✅ Đúng — unlock
     sessionStorage.setItem(SESSION_KEY,'1');
     const overlay=document.getElementById('pin-overlay');
@@ -1238,27 +1247,35 @@ function verifyPIN(){
   } else {
     // ❌ Sai — rung + thông báo
     failCount++;
-    showPinError(failCount);
-    // Đổi dots sang màu đỏ
-    for(let i=0;i<4;i++) document.getElementById('d'+i).className='pin-dot error';
-    pinLocked=true;
+    showLoginError(failMsg(failCount));
+    markError(true);
+    loginLocked=true;
     setTimeout(()=>{
-      pinInput='';
-      pinLocked=false;
-      updateDots();
-    }, 900);
+      loginLocked=false;
+      markError(false);
+    }, 700);
   }
 }
 
-function showPinError(n){
-  const el=document.getElementById('pin-error');
+function failMsg(n){
   const msgs={
-    1:'Mã PIN không đúng. Thử lại.',
-    2:'Sai lần 2. Còn 1 lần.',
+    1:'Tài khoản hoặc mật khẩu không đúng.',
+    2:'Sai lần 2. Vui lòng kiểm tra lại.',
     3:'Sai 3 lần. Vui lòng liên hệ quản trị viên.',
   };
-  el.textContent = msgs[Math.min(n,3)] || 'Mã PIN không đúng.';
-  // Reset animation
+  return msgs[Math.min(n,3)] || 'Tài khoản hoặc mật khẩu không đúng.';
+}
+
+function markError(on){
+  document.getElementById('login-user').classList.toggle('error', on);
+  document.getElementById('login-pass').classList.toggle('error', on);
+  const box=document.getElementById('pin-box');
+  if(on){ box.style.animation='none'; box.offsetHeight; box.style.animation='pin-shake .35s ease'; }
+}
+
+function showLoginError(text){
+  const el=document.getElementById('pin-error');
+  el.textContent = text;
   el.style.animation='none';
   el.offsetHeight; // reflow
   el.style.animation='';
@@ -1268,12 +1285,14 @@ function clearError(){
   document.getElementById('pin-error').textContent='';
 }
 
-// Hỗ trợ nhập bàn phím vật lý
+// Enter để đăng nhập + xóa lỗi khi gõ lại
 document.addEventListener('keydown', e=>{
   if(!document.getElementById('pin-overlay')) return;
-  if(e.key>='0' && e.key<='9') pinPress(e.key);
-  else if(e.key==='Backspace') pinDel();
-  else if(e.key==='Enter' && pinInput.length===4) verifyPIN();
+  if(e.key==='Enter') doLogin();
+});
+['login-user','login-pass'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('input', clearError);
 });
 
 /* ─── Boot ────────────────────────────────────────────── */
