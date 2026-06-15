@@ -1170,7 +1170,7 @@ function renderCal(elId, year, month, side){
     if(inRange) cls+=' in-range';
     if(isToday) cls+=' today';
     if(hasData) cls+=' has-data';
-    html+=`<div class="${cls}" onclick="pickDay(${year},${month},${d})" onmouseenter="hoverDay(${year},${month},${d})" onmouseleave="hoverDay(null,null,null)">${d}</div>`;
+    html+=`<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}" onclick="pickDay(${year},${month},${d})" onmouseenter="hoverDay(${year},${month},${d})" onmouseleave="hoverDay(null,null,null)">${d}</div>`;
   }
   html+=`</div>`;
   el.innerHTML=html;
@@ -1186,32 +1186,53 @@ function pickDay(year,month,day){
   const dt=new Date(year,month,day); dt.setHours(0,0,0,0);
   if(!pickStart||pickEnd){ pickStart=dt; pickEnd=null; document.querySelectorAll('.dr-preset').forEach(p=>p.classList.remove('active')); }
   else { if(dt<pickStart){pickEnd=pickStart;pickStart=dt;}else{pickEnd=dt;} }
-  renderCals();
+  hoverDate=null;
+  paintRange();          // chỉ tô lại class, KHÔNG dựng lại lịch → click luôn ăn
+  updateSelectedText();
+}
+
+// Tô lại trạng thái range trên các ô đang hiển thị mà không rebuild innerHTML
+function paintRange(){
+  const s=pickStart, e2=pickEnd||hoverDate;
+  const lo=s&&e2?(s<=e2?s:e2):s;
+  const hi=s&&e2?(s<=e2?e2:s):null;
+  document.querySelectorAll('#dr-panel .dr-day[data-d]').forEach(el=>{
+    const dt=new Date(+el.dataset.y,+el.dataset.m,+el.dataset.d); dt.setHours(0,0,0,0);
+    el.classList.toggle('range-start', !!(s &&dt.getTime()===s.getTime()));
+    el.classList.toggle('range-end',   !!(e2&&dt.getTime()===e2.getTime()));
+    el.classList.toggle('in-range',    !!(lo&&hi&&dt>lo&&dt<hi));
+  });
 }
 
 function hoverDay(year,month,day){
   if(year===null) hoverDate=null;
   else if(pickStart&&!pickEnd){ hoverDate=new Date(year,month,day); hoverDate.setHours(0,0,0,0); }
   else hoverDate=null;
-  renderCals();
+  paintRange();          // hover chỉ đổi màu, không dựng lại → không phá cú click
+  updateSelectedText();
 }
 
 function updateSelectedText(){
   const el=document.getElementById('dr-selected-text');
   if(!pickStart&&!pickEnd){ el.textContent='Tất cả'; return; }
   const f2=dt=>`${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
-  if(pickStart&&pickEnd) el.textContent=`${f2(pickStart)} → ${f2(pickEnd)}`;
-  else if(pickStart) el.textContent=`Từ ${f2(pickStart)}`;
+  if(pickStart&&pickEnd&&pickStart.getTime()!==pickEnd.getTime()) el.textContent=`${f2(pickStart)} → ${f2(pickEnd)}`;
+  else if(pickStart) el.textContent=`${f2(pickStart)} · 1 ngày`;
 }
 
-function applyDR(){ drStart=pickStart||null; drEnd=pickEnd||null; updateDRLabel(); closeDRPanel(); render(); }
+function applyDR(){
+  drStart=pickStart||null;
+  // Chỉ chọn 1 ngày (chưa có ngày kết thúc) → lọc đúng riêng ngày đó
+  drEnd=pickEnd || (pickStart ? new Date(pickStart) : null);
+  updateDRLabel(); closeDRPanel(); render();
+}
 function cancelDR(){ closeDRPanel(); }
 
 function updateDRLabel(){
   const el=document.getElementById('dr-label');
   if(!drStart&&!drEnd){ el.textContent='Tất cả'; return; }
   const f=dt=>`${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`;
-  if(drStart&&drEnd) el.textContent=`${f(drStart)} → ${f(drEnd)}`;
+  if(drStart&&drEnd) el.textContent = drStart.getTime()===drEnd.getTime() ? f(drStart) : `${f(drStart)} → ${f(drEnd)}`;
   else if(drStart)   el.textContent=`Từ ${f(drStart)}`;
 }
 
