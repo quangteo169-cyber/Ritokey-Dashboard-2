@@ -787,7 +787,7 @@ async function loadData(force=false){
     const iSKU    = findCol(['sku','ma sku'], 1);
     const iDate   = findCol(['ngay cap','date'], 3);
     const iCost   = findCol(['gia von','cost'], 5);
-    const iStatus = findCol(['trang thai','status'], 6);
+    const iStatus = findCol(['trang thai','status','tinh trang','tt'], 7); // Trạng thái = cột H
     const iBU     = findCol(['team','bu','team (bu)'], 8);
 
     const rows=allRows.slice(headerIdx+1).filter(r=>r.some(c=>c?.toString().trim()));
@@ -797,7 +797,11 @@ async function loadData(force=false){
       const sku   = c[iSKU]?.trim();
       const date  = normalizeDate(c[iDate]?.trim());
       const cost  = parseNum(c[iCost]) * 1000;   // Giá vốn (đơn vị nghìn)
-      const status= c[iStatus]?.trim()||'—';
+      const rawStatus = c[iStatus]?.trim() || '';
+      const sl = rawStatus.toLowerCase();
+      const status = /^done$|hoàn t|hoan t/.test(sl) ? 'Done'
+                   : /cancel|huỷ|hủy/.test(sl)        ? 'Cancel'
+                   : (rawStatus || '—');
       const bu    = c[iBU]?.trim()||'—';
       if(!date||!sku) return null;
       return [c[iSTT]?.trim(), sku, date, cost, status, bu];
