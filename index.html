@@ -885,7 +885,7 @@ function toggleSKUPanel(){
   document.getElementById('sku-panel').className=skuPanelOpen?'open':'';
   document.getElementById('sku-arrow').textContent=skuPanelOpen?'▴':'▾';
 }
-document.addEventListener('click',e=>{
+document.addEventListener('mousedown',e=>{
   if(!e.target.closest('.sku-wrap')){
     skuPanelOpen=false;
     document.getElementById('sku-panel').className='';
@@ -1117,7 +1117,11 @@ function closeDRPanel(){
   document.getElementById('dr-panel').className='';
   document.getElementById('dr-arrow').textContent='▾';
 }
-document.addEventListener('click',e=>{ if(!e.target.closest('.dr-wrap')) closeDRPanel(); });
+// ✅ FIX: dùng 'mousedown' thay 'click'. Khi bấm 1 ngày, pickDay() vẽ lại lịch
+// (innerHTML) làm node vừa bấm bị tách khỏi DOM → e.target.closest('.dr-wrap')
+// trả null → panel đóng ngay, không chọn được ngày. mousedown chạy TRƯỚC khi
+// vẽ lại nên target vẫn nằm trong DOM và nhận diện đúng click bên trong panel.
+document.addEventListener('mousedown',e=>{ if(drPanelOpen && !e.target.closest('.dr-wrap')) closeDRPanel(); });
 
 function renderCals(){
   renderCal('cal-left', calLeftYear, calLeftMonth, 'left');
