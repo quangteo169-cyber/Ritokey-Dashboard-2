@@ -748,6 +748,13 @@ function normalizeDate(raw){
 
 function parseNum(s){ return Number((s||'').replace(/[^\d.-]/g,''))||0; }
 
+// Chuẩn hoá tên cột (bỏ dấu tiếng Việt, lowercase) để dò header linh hoạt
+function normHeader(s){
+  return (s||'').toString().toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/đ/g,'d').replace(/\s+/g,' ');
+}
+
 /* ─── Fetch & parse ───────────────────────────────────── */
 async function loadData(force=false){
   const now=Date.now();
@@ -762,26 +769,42 @@ async function loadData(force=false){
     const result=Papa.parse(text,{skipEmptyLines:false});
     const allRows=result.data;
 
-    // Tìm header row (dòng có "STT" ở cột đầu)
-    let headerIdx=allRows.findIndex(r=>r[0]?.toString().trim()==='STT');
+    // Tìm header row: dòng có ô "STT" (hoặc "SKU") ở BẤT KỲ cột nào
+    let headerIdx=allRows.findIndex(r=>r.some(c=>normHeader(c)==='stt'));
+    if(headerIdx===-1) headerIdx=allRows.findIndex(r=>r.some(c=>normHeader(c)==='sku'));
     if(headerIdx===-1) headerIdx=6;
+
+    // ✅ FIX: dò cột theo TÊN header thay vì vị trí cố định
+    // → thêm/chèn cột trong sheet không còn làm vỡ dashboard
+    const headerRow=allRows[headerIdx]||[];
+    const colIndex={};
+    headerRow.forEach((c,i)=>{ const k=normHeader(c); if(k && !(k in colIndex)) colIndex[k]=i; });
+    const findCol=(cands,fallback)=>{
+      for(const name of cands){ const k=normHeader(name); if(k in colIndex) return colIndex[k]; }
+      return fallback;
+    };
+    const iSTT    = findCol(['stt'], 0);
+    const iSKU    = findCol(['sku','ma sku'], 1);
+    const iDate   = findCol(['ngay cap','date'], 3);
+    const iCost   = findCol(['gia von','cost'], 5);
+    const iStatus = findCol(['trang thai','status'], 6);
+    const iBU     = findCol(['team','bu','team (bu)'], 8);
 
     const rows=allRows.slice(headerIdx+1).filter(r=>r.some(c=>c?.toString().trim()));
     if(!rows.length) throw new Error('Sheet trống hoặc header không đúng');
 
-    // Cấu trúc cột: A=STT, B=SKU, C=NCC, D=Ngày cấp, E=Mã SP, F=Giá vốn, G=Trạng thái, H=Order ID, I=Team(BU)
     RAW=rows.map(c=>{
-      const sku   = c[1]?.trim();
-      const date  = normalizeDate(c[3]?.trim()); // D = Ngày cấp
-      // ✅ FIX: nhân × 1000 để hiển thị đúng số liệu giá vốn
-      const cost  = parseNum(c[5]) * 1000;       // F = Giá vốn
-      const status= c[6]?.trim()||'—';           // G = Trạng thái
-      const bu    = c[8]?.trim()||'—';           // I = Team/BU
+      const sku   = c[iSKU]?.trim();
+      const date  = normalizeDate(c[iDate]?.trim());
+      const cost  = parseNum(c[iCost]) * 1000;   // Giá vốn (đơn vị nghìn)
+      const status= c[iStatus]?.trim()||'—';
+      const bu    = c[iBU]?.trim()||'—';
       if(!date||!sku) return null;
-      return [c[0]?.trim(), sku, date, cost, status, bu];
+      return [c[iSTT]?.trim(), sku, date, cost, status, bu];
     }).filter(Boolean);
 
-    if(!RAW.length) throw new Error('Không parse được dòng nào — kiểm tra cấu trúc cột');
+    if(!RAW.length) throw new Error(
+      `Không parse được dòng nào — cột dò được: SKU=${iSKU}, Ngày=${iDate}, Giá=${iCost}, TT=${iStatus}, BU=${iBU}. Kiểm tra header sheet.`);
 
     cachedAt=Date.now();
     deriveConstants();

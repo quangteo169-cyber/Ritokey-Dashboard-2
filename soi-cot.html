@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soi cột — RITOKEY Sổ cấp hàng</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f1f5f9;color:#0f172a;margin:0;padding:24px;}
+  .wrap{max-width:900px;margin:0 auto;}
+  h1{font-size:18px;margin:0 0 4px;}
+  .sub{color:#64748b;font-size:13px;margin-bottom:18px;word-break:break-all;}
+  button{background:#059669;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:14px;cursor:pointer;}
+  button:hover{background:#047857;}
+  .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-top:16px;}
+  table{border-collapse:collapse;width:100%;font-size:13px;}
+  th,td{border:1px solid #e2e8f0;padding:6px 9px;text-align:left;vertical-align:top;}
+  th{background:#f8fafc;}
+  .hit{background:#dcfce7;}
+  .col-letter{color:#64748b;font-weight:600;}
+  code{background:#f1f5f9;padding:1px 5px;border-radius:4px;}
+  .err{color:#dc2626;}
+  .ok{color:#059669;}
+  .map li{margin:3px 0;}
+  pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔎 Soi cột — Sổ cấp hàng (gid 2137132884)</h1>
+  <div class="sub" id="url"></div>
+  <button onclick="run()">Tải & soi cột</button>
+  <div id="out"></div>
+</div>
+
+<script>
+const SHEET_ID='1ri89f9lm0z43dQHTNMLxs2OSubGtfMeZ-zIREnXRC50';
+const GID='2137132884';
+const CSV_URL=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+document.getElementById('url').textContent=CSV_URL;
+
+// các cột dashboard cần + tên header chấp nhận (đã bỏ dấu, lowercase)
+const NEEDED={
+  'SKU'        : ['sku','ma sku'],
+  'Ngày cấp'   : ['ngay cap','date'],
+  'Giá vốn'    : ['gia von','cost'],
+  'Trạng thái' : ['trang thai','status'],
+  'Team/BU'    : ['team','bu','team (bu)'],
+};
+const colLetter=i=>{let s='';i++;while(i>0){i--;s=String.fromCharCode(65+i%26)+s;i=Math.floor(i/26);}return s;};
+const normHeader=s=>(s||'').toString().toLowerCase().trim()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/\s+/g,' ');
+
+async function run(){
+  const out=document.getElementById('out');
+  out.innerHTML='<div class="card">Đang tải…</div>';
+  try{
+    const res=await fetch(CSV_URL+'&t='+Date.now(),{cache:'no-store'});
+    if(!res.ok) throw new Error(`HTTP ${res.status} — kiểm tra quyền chia sẻ sheet ("Anyone with the link can view")`);
+    const text=await res.text();
+    const rows=Papa.parse(text,{skipEmptyLines:false}).data;
+
+    // tìm header row
+    let hi=rows.findIndex(r=>r.some(c=>normHeader(c)==='stt'));
+    if(hi===-1) hi=rows.findIndex(r=>r.some(c=>normHeader(c)==='sku'));
+    const fallback=(hi===-1);
+    if(hi===-1) hi=6;
+    const header=rows[hi]||[];
+
+    // map tên -> index
+    const colIndex={};
+    header.forEach((c,i)=>{const k=normHeader(c);if(k&&!(k in colIndex))colIndex[k]=i;});
+    const findCol=cands=>{for(const n of cands){const k=normHeader(n);if(k in colIndex)return colIndex[k];}return -1;};
+    const resolved={}; for(const [label,cands] of Object.entries(NEEDED)) resolved[label]=findCol(cands);
+    const hitSet=new Set(Object.values(resolved).filter(i=>i>=0));
+
+    // data row mẫu (dòng đầu tiên có nội dung sau header)
+    const sample=rows.slice(hi+1).find(r=>r.some(c=>c&&c.toString().trim()))||[];
+
+    let html='<div class="card">';
+    html+=fallback
+      ? `<p class="err">⚠️ Không tìm thấy dòng header chứa "STT"/"SKU". Đang dùng dòng dự phòng (dòng ${hi+1}). Kiểm tra lại header.</p>`
+      : `<p class="ok">✓ Tìm thấy header ở dòng <code>${hi+1}</code>. Tổng số cột: <code>${header.length}</code></p>`;
+
+    // bảng cột
+    html+='<table><tr><th>Cột</th><th>Index</th><th>Tên header</th><th>Giá trị mẫu</th></tr>';
+    header.forEach((h,i)=>{
+      const cls=hitSet.has(i)?'hit':'';
+      html+=`<tr class="${cls}"><td class="col-letter">${colLetter(i)}</td><td>${i}</td><td>${(h||'').toString()||'<i style=color:#94a3b8>(trống)</i>'}</td><td>${(sample[i]||'').toString().slice(0,60)}</td></tr>`;
+    });
+    html+='</table>';
+
+    // mapping kết quả
+    html+='<h3 style="margin:16px 0 6px">Dashboard nhận diện được:</h3><ul class="map">';
+    for(const [label,idx] of Object.entries(resolved)){
+      html+= idx>=0
+        ? `<li>✅ <b>${label}</b> → cột <code>${colLetter(idx)}</code> (index ${idx})</li>`
+        : `<li class="err">❌ <b>${label}</b> → KHÔNG tìm thấy header phù hợp → cần thêm tên cột vào danh sách hoặc sửa header trong sheet</li>`;
+    }
+    html+='</ul>';
+
+    const missing=Object.entries(resolved).filter(([,i])=>i<0).map(([l])=>l);
+    if(missing.length){
+      html+=`<p class="err">→ Thiếu: ${missing.join(', ')}. Đây là nguyên nhân "Không parse được dòng nào".</p>`;
+    }else{
+      html+=`<p class="ok">→ Đủ cột cần thiết. Dashboard sẽ parse được.</p>`;
+    }
+    html+='</div>';
+    out.innerHTML=html;
+  }catch(e){
+    out.innerHTML=`<div class="card err">Lỗi: ${e.message}</div>`;
+  }
+}
+</script>
+</body>
+</html>
